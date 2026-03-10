@@ -54,15 +54,15 @@ pipeline {
            }
         }
 
-        stage('SCA') {
+        stage('SCA NPM Audit') {
             steps {
                 sh 'npm audit --audit-level=high > audit-result.txt || true'
             }
         }
-        stage('Archive Results') {
-            steps {
-                 archiveArtifacts artifacts: 'semgrep-result.json,gitleaks-report.json,audit-result.txt', fingerprint: true
 
+        stage('SCA NPM Audit') {
+            steps {
+                sh 'dependency-check.sh --project "devsecops-demo" --scan . --format "HTML,JSON" --out dependency-check-report --failOnCVSS 7 || true'
             }
         }
         
@@ -90,6 +90,12 @@ pipeline {
                 script{
                     sh 'grype ${DOCKER_IMAGE}:${DOCKER_TAG} -o json --fail-on high > grype-report.json || true'
                 }    
+            }
+        }
+        stage('Archive Results') {
+            steps {
+                 archiveArtifacts artifacts: 'semgrep-result.json,gitleaks-report.json,npm-audit-result.txt,grype-report.json', fingerprint: true
+
             }
         }
         stage('Docker Login & Push') {
