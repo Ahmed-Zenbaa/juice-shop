@@ -60,7 +60,7 @@ pipeline {
             }
         }
 
-        stage('SCA NPM Audit') {
+        stage('SCA OWASP Dependency Check') {
             steps {
                 sh 'dependency-check.sh --project "devsecops-demo" --scan . --format "HTML,JSON" --out dependency-check-report --failOnCVSS 7 || true'
             }
