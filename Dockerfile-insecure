@@ -1,0 +1,23 @@
+# Build stage
+FROM node AS installer
+
+WORKDIR /install
+
+RUN apt-get update \
+ && apt-get upgrade
+RUN apt-get install -y curl
+
+COPY package*.json .
+RUN npm install --omit=dev
+
+# App Stage
+FROM gcr.io/distroless/nodejs24-debian13
+
+WORKDIR /app
+
+COPY --from=installer --chown=65532:0 /build .
+
+USER root
+EXPOSE 3000
+
+CMD ["/app/build/app.js"]
