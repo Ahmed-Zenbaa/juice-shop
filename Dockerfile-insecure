@@ -15,7 +15,7 @@ FROM gcr.io/distroless/nodejs24-debian13
 
 WORKDIR /app
 
-COPY --from=installer --chown=65532:0 /build .
+COPY --from=installer --chown=65532:0 /install .
 
 USER root
 EXPOSE 3000
