@@ -88,7 +88,7 @@ pipeline {
         stage('Image Scan') {
             steps {
                 script{
-                    sh 'grype ${DOCKER_IMAGE}:${DOCKER_TAG} --fail-on high || true'
+                    sh 'grype ${DOCKER_IMAGE}:${DOCKER_TAG} -o json --fail-on high > grype-report.json || true'
                 }    
             }
         }
