@@ -11,7 +11,7 @@ pipeline {
 
         stage('SAST') {
             steps {
-                sh 'semgrep --config p/nodejsscan --config p/javascript --config p/owasp-top-ten --config p/secrets --json . > semgrep-result.json'
+                sh 'semgrep --config p/nodejsscan --config p/javascript --config p/owasp-top-ten --config p/secrets --json . > semgrep-report.json'
             }
         }
 
@@ -56,7 +56,7 @@ pipeline {
 
         stage('SCA NPM Audit') {
             steps {
-                sh 'npm audit --audit-level=high > audit-result.txt || true'
+                sh 'npm audit --audit-level=high > npm-audit-report.txt || true'
             }
         }
 
@@ -94,7 +94,7 @@ pipeline {
         }
         stage('Archive Results') {
             steps {
-                 archiveArtifacts artifacts: 'semgrep-result.json,gitleaks-report.json,npm-audit-result.txt,grype-report.json', fingerprint: true
+                 archiveArtifacts artifacts: 'semgrep-report.json,gitleaks-report.json,npm-audit-report.txt,grype-report.json', fingerprint: true
 
             }
         }
