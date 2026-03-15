@@ -153,16 +153,44 @@ pipeline {
                 }    
             }
         }
-        stage('Archive Results') {
-            steps {
-                 archiveArtifacts artifacts: 'gitleaks-report.json, detect-secrets-report.json, semgrep-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
+        // stage('Archive Results') {
+        //     steps {
+        //          archiveArtifacts artifacts: 'gitleaks-report.json, detect-secrets-report.json, semgrep-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
 
+        //     }
+        // }
+        stage('Archive Results') {
+            post {
+                always {
+                    // Archive whatever files are present, even if some are missing
+                    script {
+                        def files = [
+                            'gitleaks-report.json',
+                            'detect-secrets-report.json',
+                            'semgrep-report.json',
+                            'npm-audit-report.txt',
+                            'grype-report.json',
+                            'zap-report.html'
+                        ]
+
+                        def existingFiles = files.findAll { file -> fileExists(file) }
+
+                        if (existingFiles) {
+                            archiveArtifacts artifacts: existingFiles.join(', '), fingerprint: true
+                        } else {
+                            echo "No artifacts found to archive."
+                        }
+                    }
+                }
             }
         }
-     }
-     post {
-        always {
-            cleanWs()
+        
+        stage('Archive Results') {
+            post {
+                always {
+                    cleanWs()
+                }
+            }
         }
-    }
+     }     
 }
