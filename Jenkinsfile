@@ -101,12 +101,7 @@ pipeline {
                 }    
             }
         }
-        stage('Archive Results') {
-            steps {
-                 archiveArtifacts artifacts: 'semgrep-report.json,gitleaks-report.json,npm-audit-report.txt,grype-report.json', fingerprint: true
 
-            }
-        }
         stage('Docker Login & Push') {
             steps {
                 script {
@@ -131,6 +126,20 @@ pipeline {
                         kubectl rollout status deployments.apps/juice-shop
                     """
                 }
+            }
+        }
+        stage('DAST - OWASP ZAP') {
+            steps {
+                script{
+                    sh 'sleep 60'
+                    sh 'docker run --rm --add-host juice.shop.internal:192.168.49.2 -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html || true '
+                }    
+            }
+        }
+        stage('Archive Results') {
+            steps {
+                 archiveArtifacts artifacts: 'semgrep-report.json, gitleaks-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
+
             }
         }
      }
