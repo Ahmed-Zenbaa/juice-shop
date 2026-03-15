@@ -21,6 +21,14 @@ pipeline {
                        sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files | tee detect-secrets-report.json\''
                    }
                 }
+                stage('Detect Secrets') {
+                   steps { 
+                       sh """
+                           docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:latest  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report
+                           cp checkov-secret-report/results_json.json checkov-secret-report.json
+                        """
+                   }
+                }
             }
         }
         
@@ -112,12 +120,23 @@ pipeline {
                 }    
             }
         }
-        
-        stage('Image Scan') {
-            steps {
-                script{
-                    sh 'grype ${DOCKER_IMAGE}:${DOCKER_TAG} -o json --fail-on high > grype-report.json || true'
-                }    
+
+        stage ('Image Scan') {
+            parallel {
+                stage('Trivy') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:latest image ${DOCKER_IMAGE}:${DOCKER_TAG} -o trivy-report.txt --severity HIGH,CRITICAL || true'
+                        }    
+                    }
+                }
+                stage('Grype') {
+                    steps {
+                        script{
+                            sh 'grype ${DOCKER_IMAGE}:${DOCKER_TAG} -o json --fail-on high > grype-report.json || true'
+                        }    
+                    }
+                }
             }
         }
 
@@ -168,6 +187,7 @@ pipeline {
                 def files = [
                     'gitleaks-report.json',
                     'detect-secrets-report.json',
+                    'checkov-secret-report.json',
                     'semgrep-report.json',
                     'npm-audit-report.txt',
                     'grype-report.json',
