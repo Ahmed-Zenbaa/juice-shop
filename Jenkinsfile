@@ -189,6 +189,9 @@ pipeline {
         }
         
         stage('Clean UP') {
+            steps {
+                echo "Cleaning up..."
+            }
             post {
                 always {
                     cleanWs()
