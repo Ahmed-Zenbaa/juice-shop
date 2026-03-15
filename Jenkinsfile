@@ -5,6 +5,7 @@ pipeline {
         SONARQUBE = 'sonarqube'
         DOCKER_IMAGE = 'docker.io/ahmedzenbaa/devsecops-demo'
         DOCKER_TAG = "v1.${BUILD_NUMBER}"
+        NVD_API_KEY = credentials('nvd-api-key')
     }
 
     stages {
@@ -13,18 +14,18 @@ pipeline {
             parallel {
                 stage('Gitleaks') {
                    steps { 
-                       sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true' 
+                       sh 'gitleaks detect --source . --exclude-files "*-report.json,*/results_json.json"     --no-git --report-format json --report-path gitleaks-report.json || true' 
                    }
                 }
                 stage('Detect Secrets') {
                    steps { 
-                       sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files | tee detect-secrets-report.json\''
+                       sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files --exclude-files "*-report.json,*/results_json.json" | tee detect-secrets-report.json\''
                    }
                 }
                 stage('Checkov') {
                    steps { 
                        sh '''
-                           docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:latest  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report
+                           docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:latest  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report --skip-path "*-report.json"
                            cp checkov-secret-report/results_json.json checkov-secret-report.json
                        '''
                    }
@@ -84,8 +85,7 @@ pipeline {
                 stage('OWASP Dependency Check') {
                     steps {
                         sh '''
-                            dependency-check.sh --project "devsecops-demo" --scan . --format "HTML" --out dependency-check-report --failOnCVSS 7 || true
-                            ls -lR
+                            docker run --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:latest  --project "devsecops-demo" --scan . --nvd-api-key $NVD_API_KEY --format "HTML" --out dependency-check-report --failOnCVSS 7 || true
                             cp dependency-check-report/dependency-check-report.html dependency-check-report.html
                         '''
                     }
