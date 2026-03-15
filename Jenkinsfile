@@ -9,11 +9,19 @@ pipeline {
 
     stages {
 
-        stage('Secrets Scan') {
-           steps { 
-               sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true'
-               
-           }
+        stage ('Secrets Scan') {
+            parallel {
+                stage('Gitleaks') {
+                   steps { 
+                       sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true' 
+                   }
+                }
+                stage('Detect Secrets') {
+                   steps { 
+                       docker run --rm -v $(pwd):/wrk:rw -w /wrk -it python:3.11-alpine sh -c 'pip install detect-secrets && ls && detect-secrets scan --all-files | tee detect-secrets-report.json'
+                   }
+                }
+            }
         }
         
         stage ('SAST') {
@@ -147,7 +155,7 @@ pipeline {
         }
         stage('Archive Results') {
             steps {
-                 archiveArtifacts artifacts: 'semgrep-report.json, gitleaks-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
+                 archiveArtifacts artifacts: 'gitleaks-report.json, detect-secrets-report.json, semgrep-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
 
             }
         }
