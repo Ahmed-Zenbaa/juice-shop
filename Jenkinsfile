@@ -21,7 +21,7 @@ pipeline {
                        sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files | tee detect-secrets-report.json\''
                    }
                 }
-                stage('Detect Secrets') {
+                stage('Checkov') {
                    steps { 
                        sh '''
                            docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:latest  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report
