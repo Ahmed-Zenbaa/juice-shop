@@ -159,44 +159,31 @@ pipeline {
 
         //     }
         // }
-        stage('Archive Results') {
-            steps {
-                echo "Archiving reports..."
-            }
-            post {
-                always {
-                    // Archive whatever files are present, even if some are missing
-                    script {
-                        def files = [
-                            'gitleaks-report.json',
-                            'detect-secrets-report.json',
-                            'semgrep-report.json',
-                            'npm-audit-report.txt',
-                            'grype-report.json',
-                            'zap-report.html'
-                        ]
-
-                        def existingFiles = files.findAll { file -> fileExists(file) }
-
-                        if (existingFiles) {
-                            archiveArtifacts artifacts: existingFiles.join(', '), fingerprint: true
-                        } else {
-                            echo "No artifacts found to archive."
-                        }
-                    }
-                }
-            }
-        }
         
-        stage('Clean UP') {
-            steps {
-                echo "Cleaning up..."
-            }
-            post {
-                always {
-                    cleanWs()
+    }
+    post {
+        always {
+            // Archive whatever files are present, even if some are missing
+            script {
+                def files = [
+                    'gitleaks-report.json',
+                    'detect-secrets-report.json',
+                    'semgrep-report.json',
+                    'npm-audit-report.txt',
+                    'grype-report.json',
+                    'zap-report.html'
+                ]
+
+                def existingFiles = files.findAll { file -> fileExists(file) }
+
+                if (existingFiles) {
+                    archiveArtifacts artifacts: existingFiles.join(', '), fingerprint: true
+                } else {
+                    echo "No artifacts found to archive."
                 }
             }
+            echo "Pipeline finished (success/failure). Cleaning up workspace..."
+            cleanWs()
         }
-     }     
+    }
 }
