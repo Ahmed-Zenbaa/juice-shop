@@ -18,7 +18,7 @@ pipeline {
                 }
                 stage('Detect Secrets') {
                    steps { 
-                       docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c 'pip install detect-secrets && ls && detect-secrets scan --all-files | tee detect-secrets-report.json'
+                       sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && ls && detect-secrets scan --all-files | tee detect-secrets-report.json\''
                    }
                 }
             }
