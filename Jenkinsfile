@@ -9,29 +9,39 @@ pipeline {
 
     stages {
 
-        stage('SAST') {
-            steps {
-                sh 'semgrep --config p/nodejsscan --config p/javascript --config p/owasp-top-ten --config p/secrets --json . > semgrep-report.json'
-            }
+        stage('Secrets Check') {
+           steps { 
+               sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true'
+               
+           }
         }
-
-
-        stage('Sonarqube') {
-            steps {
-                withSonarQubeEnv("${env.SONARQUBE}") {
-                    sh '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=devsecops \
-                          -Dsonar.projectName="DevSecOps" \
-                          -Dsonar.projectVersion=1.0 \
-                          -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/node_modules/**,**/venv/** \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
-                    '''
+        stage ('SAST') {
+            parallel {
+                stage('semgrep') {
+                    steps {
+                        sh 'semgrep --config p/nodejsscan --config p/javascript --config p/owasp-top-ten --config p/secrets --json . > semgrep-report.json'
+                    }
+                }
+                stage('Sonarqube') {
+                    steps {
+                        withSonarQubeEnv("${env.SONARQUBE}") {
+                            sh '''
+                                sonar-scanner \
+                                  -Dsonar.projectKey=devsecops \
+                                  -Dsonar.projectName="DevSecOps" \
+                                  -Dsonar.projectVersion=1.0 \
+                                  -Dsonar.sources=. \
+                                  -Dsonar.exclusions=**/node_modules/**,**/venv/** \
+                                  -Dsonar.host.url=$SONAR_HOST_URL \
+                                  -Dsonar.login=$SONAR_AUTH_TOKEN
+                            '''
+                        }
+                    }
                 }
             }
         }
+
+
 
         stage('Quality Gate') {
           steps {
@@ -47,24 +57,23 @@ pipeline {
                }
             }
         }
-        stage('Secrets Check') {
-           steps { 
-               sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true'
-               
-           }
-        }
 
-        stage('SCA NPM Audit') {
-            steps {
-                sh 'npm audit --audit-level=high > npm-audit-report.txt || true'
+        stage ('SCA') {
+            parallel {
+                stage('NPM Audit') {
+                    steps {
+                        sh 'npm audit --audit-level=high > npm-audit-report.txt || true'
+                    }
+                }
+
+                stage('OWASP Dependency Check') {
+                    steps {
+                        sh 'dependency-check.sh --project "devsecops-demo" --scan . --format "HTML,JSON" --out dependency-check-report --failOnCVSS 7 || true'
+                    }
+                }                
             }
         }
 
-        stage('SCA OWASP Dependency Check') {
-            steps {
-                sh 'dependency-check.sh --project "devsecops-demo" --scan . --format "HTML,JSON" --out dependency-check-report --failOnCVSS 7 || true'
-            }
-        }
         
         stage('Validate Dockerfile') {
             steps {
