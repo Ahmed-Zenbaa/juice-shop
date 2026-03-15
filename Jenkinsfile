@@ -85,6 +85,7 @@ pipeline {
                     steps {
                         sh '''
                             dependency-check.sh --project "devsecops-demo" --scan . --format "HTML" --out dependency-check-report --failOnCVSS 7 || true
+                            ls -lR
                             cp dependency-check-report/dependency-check-report.html dependency-check-report.html
                         '''
                     }
