@@ -4,17 +4,18 @@ pipeline {
     environment {
         SONARQUBE = 'sonarqube'
         DOCKER_IMAGE = 'docker.io/ahmedzenbaa/devsecops-demo'
-        DOCKER_TAG = "${BUILD_NUMBER}"
+        DOCKER_TAG = "v1.${BUILD_NUMBER}"
     }
 
     stages {
 
-        stage('Secrets Check') {
+        stage('Secrets Scan') {
            steps { 
                sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true'
                
            }
         }
+        
         stage ('SAST') {
             parallel {
                 stage('semgrep') {
@@ -41,9 +42,7 @@ pipeline {
             }
         }
 
-
-
-        stage('Quality Gate') {
+        stage('Sonarqube Quality Gate') {
           steps {
             timeout(time: 5, unit: 'MINUTES') {
             script {
@@ -74,26 +73,38 @@ pipeline {
             }
         }
 
-        
-        stage('Validate Dockerfile') {
-            steps {
-                script{
-                    sh 'hadolint Dockerfile || true'
-                    sh 'conftest test Dockerfile || true'
+        stage ('Validate Dockerfile') {
+            parallel {
+                stage('Hadolint') {
+                    steps {
+                        script{
+                            sh 'hadolint Dockerfile || true'
+                            sh 'hadolint Dockerfile-insecure || true'
+                        }    
+                    }
+                }
+                stage('Conftest') {
+                    steps {
+                        script{
+                            sh 'conftest test Dockerfile || true'
+                            sh 'conftest test Dockerfile-insecure || true'
+                        }    
+                    }
+                }
+            }
+        }
 
-                    sh 'hadolint Dockerfile-insecure || true'
-                    sh 'conftest test Dockerfile-insecure || true'
-                   
-                }    
-            }
-        }
-        stage('Build') {
+        stage('Image Build & Tag') {
             steps {
                 script{
-                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                    """
                 }    
             }
         }
+        
         stage('Image Scan') {
             steps {
                 script{
@@ -109,8 +120,6 @@ pipeline {
                         sh """
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" docker.io --password-stdin
                             docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                            
-                            docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
                             docker push ${DOCKER_IMAGE}:latest
                             docker logout
                         """
@@ -118,7 +127,7 @@ pipeline {
                 }
             }
         }
-        stage('Deploy') {
+        stage('K8s Deploy') {
             steps {
                 withKubeConfig(credentialsId: 'kubeconfig') {
                     sh """
