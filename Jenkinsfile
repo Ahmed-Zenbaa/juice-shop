@@ -26,7 +26,7 @@ pipeline {
                        sh """
                            docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:latest  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report
                            cp checkov-secret-report/results_json.json checkov-secret-report.json
-                        """
+                       """
                    }
                 }
             }
