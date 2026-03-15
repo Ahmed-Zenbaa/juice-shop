@@ -83,7 +83,10 @@ pipeline {
 
                 stage('OWASP Dependency Check') {
                     steps {
-                        sh 'dependency-check.sh --project "devsecops-demo" --scan . --format "HTML,JSON" --out dependency-check-report --failOnCVSS 7 || true'
+                        sh '''
+                            dependency-check.sh --project "devsecops-demo" --scan . --format "HTML" --out dependency-check-report --failOnCVSS 7 || true
+                            cp dependency-check-report/dependency-check-report.html dependency-check-report.html
+                        '''
                     }
                 }                
             }
@@ -94,16 +97,16 @@ pipeline {
                 stage('Hadolint') {
                     steps {
                         script{
-                            sh 'hadolint Dockerfile || true'
-                            sh 'hadolint Dockerfile-insecure || true'
+                            sh 'hadolint Dockerfile > hadolint-report.txt || true'
+                            sh 'hadolint Dockerfile-insecure > hadolint-insecure-report.txt || true'
                         }    
                     }
                 }
                 stage('Conftest') {
                     steps {
                         script{
-                            sh 'conftest test Dockerfile || true'
-                            sh 'conftest test Dockerfile-insecure || true'
+                            sh 'conftest test Dockerfile > conftest-report.txt || true'
+                            sh 'conftest test Dockerfile-insecure > conftest-insecure-report.txt || true'
                         }    
                     }
                 }
@@ -190,6 +193,12 @@ pipeline {
                     'checkov-secret-report.json',
                     'semgrep-report.json',
                     'npm-audit-report.txt',
+                    'dependency-check-report.html',
+                    'hadolint-report.txt',
+                    'hadolint-insecure-report.txt',
+                    'conftest-report.txt',
+                    'conftest-insecure-report.txt',
+                    'trivy-report.txt',
                     'grype-report.json',
                     'zap-report.html'
                 ]
