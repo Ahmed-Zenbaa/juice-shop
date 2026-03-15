@@ -185,7 +185,7 @@ pipeline {
             }
         }
         
-        stage('Archive Results') {
+        stage('Clean UP') {
             post {
                 always {
                     cleanWs()
