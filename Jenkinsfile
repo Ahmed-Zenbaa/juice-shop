@@ -10,6 +10,15 @@ pipeline {
 
     stages {
 
+        stage('OWASP Dependency Check') {
+            steps {
+                sh '''
+                    docker run --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -v $(pwd)/dependency-check-report/:/report -w /wrk owasp/dependency-check:latest --project "devsecops-demo" --scan . --nvdApiKey $NVD_API_KEY --format "HTML" --out /report --failOnCVSS 7 || true
+                    cp dependency-check-report/dependency-check-report.html dependency-check-report.html
+                '''
+            }
+        }                
+
         stage ('Secrets Scan') {
             parallel {
                 stage('Gitleaks') {
@@ -85,7 +94,7 @@ pipeline {
                 stage('OWASP Dependency Check') {
                     steps {
                         sh '''
-                            docker run --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:latest  --project "devsecops-demo" --scan . --nvd-api-key $NVD_API_KEY --format "HTML" --out dependency-check-report --failOnCVSS 7 || true
+                            docker run --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -v $(pwd)/dependency-check-report/:/report -w /wrk owasp/dependency-check:latest --project "devsecops-demo" --scan . --nvdApiKey $NVD_API_KEY --format "HTML" --out /report --failOnCVSS 7 || true
                             cp dependency-check-report/dependency-check-report.html dependency-check-report.html
                         '''
                     }
