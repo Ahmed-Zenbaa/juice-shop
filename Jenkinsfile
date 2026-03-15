@@ -160,6 +160,9 @@ pipeline {
         //     }
         // }
         stage('Archive Results') {
+            steps {
+                echo "Archiving reports..."
+            }
             post {
                 always {
                     // Archive whatever files are present, even if some are missing
