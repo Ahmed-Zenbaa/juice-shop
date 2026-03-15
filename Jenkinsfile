@@ -137,7 +137,7 @@ pipeline {
         }
         stage('K8s Deploy') {
             steps {
-                withKubeConfig(credentialsId: 'kubeconfig') {
+                withKubeConfig(credentialsId: 'jenkins-kubeconfig') {
                     sh """
                         kubectl set image deployments.apps/juice-shop juice-shop=${DOCKER_IMAGE}:${DOCKER_TAG}
                         kubectl rollout status deployments.apps/juice-shop
