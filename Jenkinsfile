@@ -4,7 +4,7 @@ pipeline {
     environment {
         SONARQUBE = 'sonarqube'
         DOCKER_IMAGE = 'docker.io/ahmedzenbaa/devsecops-demo'
-        DOCKER_TAG = 'latest'
+        DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -81,7 +81,7 @@ pipeline {
         stage('Build') {
             steps {
                 script{
-                    sh 'docker build -f Dockerfile-insecure -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
                 }    
             }
         }
@@ -105,6 +105,9 @@ pipeline {
                         sh """
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" docker.io --password-stdin
                             docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            
+                            docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                            docker push ${DOCKER_IMAGE}:latest
                             docker logout
                         """
                     }
