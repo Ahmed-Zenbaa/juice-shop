@@ -124,14 +124,19 @@ pipeline {
             }
         }
         stage('Deploy') {
-          steps {
-            withKubeConfig(credentialsId: 'kubeconfig') {
-              sh """
-                kubectl set image deployments.apps/juice-shop juice-shop=${DOCKER_IMAGE}:${DOCKER_TAG}
-                kubectl rollout status deployments.apps/juice-shop
-              """
+            steps {
+                withKubeConfig(credentialsId: 'kubeconfig') {
+                    sh """
+                        kubectl set image deployments.apps/juice-shop juice-shop=${DOCKER_IMAGE}:${DOCKER_TAG}
+                        kubectl rollout status deployments.apps/juice-shop
+                    """
+                }
             }
-          }
         }
      }
+     post {
+        always {
+            cleanWs()
+        }
+    }
 }
