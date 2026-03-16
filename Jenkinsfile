@@ -23,13 +23,27 @@ pipeline {
             parallel {
                 stage('Gitleaks') {
                    steps { 
-                       sh 'gitleaks detect --source . --exclude-files "*-report.json,*/results_json.json"     --no-git --report-format json --report-path gitleaks-report.json || true' 
+                       sh 'gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json || true'
+                       sh 'echo "done" > gitleaks-status.txt'
                    }
                 }
                 stage('Detect Secrets') {
-                   steps { 
-                       sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files --exclude-files "*-report.json,*/results_json.json" | tee detect-secrets-report.json\''
-                   }
+                    stages {
+                        stage('Wait for Gitleaks') {
+                            steps {
+                                script {
+                                    waitUntil {
+                                        fileExists 'gitleaks-status.txt'
+                                    }
+                                }
+                            }
+                        }
+                        stage('Detect Secrets Running') {
+                            steps { 
+                               sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files --exclude-files "gitleaks-report.json,checkov-secret-report/results_json.json,checkov-secret-report.json" | tee detect-secrets-report.json\''
+                            }
+                        }
+                    }
                 }
                 stage('Checkov') {
                    steps { 
