@@ -14,8 +14,8 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:latest --project "devsecops-demo" --scan . --nvdApiKey $NVD_API_KEY --format "HTML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
+                    cp dependency-check-report/dependency-check-report.html dependency-check-report.html || true 
                 '''
-                                    // cp dependency-check-report/dependency-check-report.html dependency-check-report.html
             }
         }                
 
