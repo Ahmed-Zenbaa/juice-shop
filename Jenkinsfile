@@ -27,9 +27,9 @@ pipeline {
                        sh 'echo "done" > gitleaks-status.txt'
                    }
                 }
-                stage('Detect Secrets') {
+                stage('Detect Secrets Stage') {
                     stages {
-                        stage('Wait for Gitleaks') {
+                        stage('Wait for Gitleaks Status') {
                             steps {
                                 script {
                                     waitUntil {
@@ -38,20 +38,33 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Detect Secrets Running') {
+                        stage('Detect Secrets') {
                             steps { 
                                sh 'docker run --rm -v $(pwd):/wrk:rw -w /wrk python:3.11-alpine sh -c \'pip install detect-secrets && detect-secrets scan --all-files --exclude-files "gitleaks-report.json,checkov-secret-report/results_json.json,checkov-secret-report.json" | tee detect-secrets-report.json\''
                             }
                         }
                     }
                 }
-                stage('Checkov') {
-                   steps { 
-                       sh '''
-                           docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report --skip-path "*-report.json"
-                           cp checkov-secret-report/results_json.json checkov-secret-report.json
-                       '''
-                   }
+                stage('Checkov Stage') {
+                    stages {
+                        stage('Wait for Gitleaks status') {
+                            steps {
+                                script {
+                                    waitUntil {
+                                        fileExists 'gitleaks-status.txt'
+                                    }
+                                }
+                            }
+                        }
+                        stage('Checkov') {
+                            steps { 
+                                sh '''
+                                    docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report --skip-path "*-report.json"
+                                    cp checkov-secret-report/results_json.json checkov-secret-report.json
+                                '''
+                            }
+                        }
+                    }
                 }
             }
         }
