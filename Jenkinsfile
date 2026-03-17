@@ -167,7 +167,6 @@ pipeline {
                         }    
                     }
                 }
-                docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -f insecure.dockerfile --framework dockerfile -o json --soft-fail > checkov-dockerfile-report.json || true
             }
         }
 
