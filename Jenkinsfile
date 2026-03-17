@@ -254,6 +254,8 @@ pipeline {
                     'dependency-check-report.html',
                     'hadolint-report.txt',
                     'hadolint-insecure-report.txt',
+                    'checkov-dockerfile-report.json',
+                    'checkov-dockerfile-insecure-report.json',
                     'conftest-report.txt',
                     'conftest-insecure-report.txt',
                     'trivy-report.txt',
