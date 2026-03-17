@@ -45,7 +45,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Checkov Stage') {
+                stage('Checkov Secrets Stage') {
                     stages {
                         stage('Wait for Gitleaks status') {
                             steps {
@@ -56,7 +56,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Checkov') {
+                        stage('Checkov Secrets') {
                             steps { 
                                 sh '''
                                     docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -d . --framework secrets -o json --soft-fail --output-file-path checkov-secret-report --skip-path "*-report.json"
@@ -148,6 +148,17 @@ pipeline {
                         }    
                     }
                 }
+                stage('Checkov Dockerfile') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -f Dockerfile --framework dockerfile -o json --soft-fail > checkov-dockerfile-report.json || true'
+                            sh '''
+                                cp Dockerfile-insecure insecure.dockerfile
+                                docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -f insecure.dockerfile --framework dockerfile -o json --soft-fail > checkov-dockerfile-insecure-report.json || true
+                            '''
+                        }    
+                    }
+                }
                 stage('Conftest') {
                     steps {
                         script{
@@ -156,6 +167,7 @@ pipeline {
                         }    
                     }
                 }
+                docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508  -f insecure.dockerfile --framework dockerfile -o json --soft-fail > checkov-dockerfile-report.json || true
             }
         }
 
