@@ -134,14 +134,6 @@ pipeline {
                             }
                         }
                     }
-                }
-                stage('OWASP Dependency Check') {
-                    steps {
-                        sh '''
-                            docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
-                            cp dependency-check-report/dependency-check-report.html dependency-check-report.html || true
-                        '''
-                    }
                 }                
             }
         }
