@@ -6,18 +6,10 @@ pipeline {
         DOCKER_IMAGE = 'docker.io/ahmedzenbaa/devsecops-demo'
         DOCKER_TAG = "v1.${BUILD_NUMBER}"
         NVD_API_KEY = credentials('nvd-api-key')
+        TARGET_IP = credentials('app-dast-target-ip')
     }
 
-    stages {
-
-        // stage('OWASP Dependency Check') {
-        //     steps {
-        //         sh '''
-        //             docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
-        //             cp dependency-check-report/dependency-check-report.html dependency-check-report.html || true 
-        //         '''
-        //     }
-        // }                
+    stages {             
 
         stage ('Secrets Scan') {
             parallel {
@@ -183,10 +175,10 @@ pipeline {
 
         stage ('Image Scan') {
             parallel {
-                stage('Trivy') {
+                stage('Trivy Image') {
                     steps {
                         script{
-                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} -o trivy-report.txt --severity HIGH,CRITICAL || true'
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} -o trivy-image-report.txt --severity HIGH,CRITICAL || true'
                         }    
                     }
                 }
@@ -214,6 +206,34 @@ pipeline {
                 }
             }
         }
+
+        stage('Infrastructure Deploy') {
+            steps {
+                script {
+                    sh 'echo "Running Terraform Apply Commands..."'
+                }
+            }
+        }
+        
+        stage ('IaC manifests Scan') {
+            parallel {
+                stage('Trivy IaC') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure -o trivy-iac-report.txt || true'
+                        }    
+                    }
+                }
+                stage('Checkov IaC') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508 -d Infrastructure --framework terraform -o json > checkov-iac-report.json || true'
+                        }    
+                    }
+                }
+            }
+        }
+        
         stage('K8s Deploy') {
             steps {
                 withKubeConfig(credentialsId: 'jenkins-kubeconfig') {
@@ -224,20 +244,15 @@ pipeline {
                 }
             }
         }
+
         stage('DAST - OWASP ZAP') {
             steps {
                 script{
                     sh 'sleep 60'
-                    sh 'docker run --rm --add-host juice.shop.internal:192.168.49.2 -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html || true '
+                    sh 'docker run --rm --add-host juice.shop.internal:$TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html || true '
                 }    
             }
         }
-        // stage('Archive Results') {
-        //     steps {
-        //          archiveArtifacts artifacts: 'gitleaks-report.json, detect-secrets-report.json, semgrep-report.json, npm-audit-report.txt, grype-report.json, zap-report.html', fingerprint: true
-
-        //     }
-        // }
         
     }
     post {
@@ -257,8 +272,10 @@ pipeline {
                     'checkov-dockerfile-insecure-report.json',
                     'conftest-report.txt',
                     'conftest-insecure-report.txt',
-                    'trivy-report.txt',
+                    'trivy-image-report.txt',
                     'grype-report.json',
+                    'trivy-iac-report.txt',
+                    'checkov-iac-report.json',
                     'zap-report.html'
                 ]
 
