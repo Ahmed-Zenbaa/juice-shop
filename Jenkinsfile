@@ -207,14 +207,6 @@ pipeline {
             }
         }
 
-        stage('Infrastructure Deploy') {
-            steps {
-                script {
-                    sh 'echo "Running Terraform Apply Commands..."'
-                }
-            }
-        }
-        
         stage ('IaC manifests Scan') {
             parallel {
                 stage('Trivy IaC') {
@@ -230,6 +222,14 @@ pipeline {
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508 -d Infrastructure --framework terraform -o json > checkov-iac-report.json || true'
                         }    
                     }
+                }
+            }
+        }
+        
+        stage('Infrastructure Deploy') {
+            steps {
+                script {
+                    sh 'echo "Running Terraform Apply Commands..."'
                 }
             }
         }
