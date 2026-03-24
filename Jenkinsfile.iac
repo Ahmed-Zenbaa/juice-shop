@@ -11,6 +11,7 @@ pipeline {
                         script{
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure -o trivy-iac-report.txt || true'
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format template --template "@contrib/html.tpl" -o trivy-iac-report.html || true'
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format json -o trivy-iac-report.json || true'
                         }    
                     }
                 }
@@ -38,8 +39,9 @@ pipeline {
             script {
                 def files = [
                     'trivy-iac-report.txt',
-                    'checkov-iac-report.json',
-                    'trivy-iac-report.html'
+                    'trivy-iac-report.html',
+                    'rivy-iac-report.json',
+                    'checkov-iac-report.json'
                 ]
 
                 def existingFiles = files.findAll { file -> fileExists(file) }
