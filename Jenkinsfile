@@ -212,7 +212,7 @@ pipeline {
                 stage('Trivy IaC') {
                     steps {
                         script{
-                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure -o trivy-iac-report.txt || true'
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format json -o trivy-iac-report.json || true'
                         }    
                     }
                 }
@@ -274,7 +274,7 @@ pipeline {
                     'conftest-insecure-report.txt',
                     'trivy-image-report.txt',
                     'grype-report.json',
-                    'trivy-iac-report.txt',
+                    'trivy-iac-report.json',
                     'checkov-iac-report.json',
                     'zap-report.html'
                 ]
