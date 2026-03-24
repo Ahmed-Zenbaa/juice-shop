@@ -10,7 +10,7 @@ pipeline {
                     steps {
                         script{
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure -o trivy-iac-report.txt || true'
-                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format template --template "@contrib/html.tpl" -o trivy-iac-report.html || true'
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o trivy-iac-report.html || true'
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure --format json -o trivy-iac-report.json || true'
                         }    
                     }
