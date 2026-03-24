@@ -40,7 +40,7 @@ pipeline {
                 def files = [
                     'trivy-iac-report.txt',
                     'trivy-iac-report.html',
-                    'rivy-iac-report.json',
+                    'trivy-iac-report.json',
                     'checkov-iac-report.json'
                 ]
 
