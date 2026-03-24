@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+
+    stages {             
+
+        stage ('IaC manifests Scan') {
+            parallel {
+                stage('Trivy IaC') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 config Infrastructure -o trivy-iac-report.txt || true'
+                        }    
+                    }
+                }
+                stage('Checkov IaC') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk bridgecrew/checkov:3.2.508 -d Infrastructure --framework terraform -o json > checkov-iac-report.json || true'
+                        }    
+                    }
+                }
+            }
+        }
+
+        stage('Infrastructure Deploy') {
+            steps {
+                script {
+                    sh 'echo "Running Terraform Apply Commands..."'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            // Archive whatever files are present, even if some are missing
+            script {
+                def files = [
+                    'trivy-iac-report.txt',
+                    'checkov-iac-report.json'
+                ]
+
+                def existingFiles = files.findAll { file -> fileExists(file) }
+
+                if (existingFiles) {
+                    archiveArtifacts artifacts: existingFiles.join(', '), fingerprint: true
+                } else {
+                    echo "No artifacts found to archive."
+                }
+            }
+            echo "Pipeline finished (success/failure). Cleaning up workspace..."
+            cleanWs()
+        }
+    }
+}
