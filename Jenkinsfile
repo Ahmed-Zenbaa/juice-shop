@@ -7,6 +7,7 @@ pipeline {
         DOCKER_TAG = "v1.${BUILD_NUMBER}"
         NVD_API_KEY = credentials('nvd-api-key')
         TARGET_IP = credentials('app-dast-target-ip')
+        DEFECTDOJO_API_TOKEN = credentials('defectdojo-api-token')
     }
 
     stages {             
@@ -106,7 +107,7 @@ pipeline {
             parallel {
                 stage('NPM Audit') {
                     steps {
-                        sh 'npm audit --audit-level=high > npm-audit-report.txt || true'
+                        sh 'npm audit --json --audit-level=high > npm-audit-report.json || true'
                     }
                 }
 
@@ -120,8 +121,9 @@ pipeline {
                         stage('OWASP Dependency Check') {
                             steps {
                                 sh '''
-                                    docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
+                                    docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --format "XML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
                                     cp dependency-check-report/dependency-check-report.html dependency-check-report.html || true
+                                    cp dependency-check-report/dependency-check-report.xml dependency-check-report.xml || true
                                 '''
                             }
                         }
@@ -178,7 +180,7 @@ pipeline {
                 stage('Trivy Image') {
                     steps {
                         script{
-                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} -o trivy-image-report.txt --severity HIGH,CRITICAL || true'
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} --format json -o trivy-image-report.json || true'
                         }    
                     }
                 }
@@ -249,7 +251,7 @@ pipeline {
             steps {
                 script{
                     sh 'sleep 60'
-                    sh 'docker run --rm --add-host juice.shop.internal:$TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html || true '
+                    sh 'docker run --rm --add-host juice.shop.internal:$TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html -x zap-report.xml || true '
                 }    
             }
         }
@@ -264,19 +266,21 @@ pipeline {
                     'detect-secrets-report.json',
                     'checkov-secret-report.json',
                     'semgrep-report.json',
-                    'npm-audit-report.txt',
+                    'npm-audit-report.json',
                     'dependency-check-report.html',
+                    'dependency-check-report.xml',
                     'hadolint-report.txt',
                     'hadolint-insecure-report.txt',
                     'checkov-dockerfile-report.json',
                     'checkov-dockerfile-insecure-report.json',
                     'conftest-report.txt',
                     'conftest-insecure-report.txt',
-                    'trivy-image-report.txt',
+                    'trivy-image-report.json',
                     'grype-report.json',
                     'trivy-iac-report.json',
                     'checkov-iac-report.json',
-                    'zap-report.html'
+                    'zap-report.html',
+                    'zap-report.xml'
                 ]
 
                 def existingFiles = files.findAll { file -> fileExists(file) }
@@ -287,6 +291,18 @@ pipeline {
                     echo "No artifacts found to archive."
                 }
             }
+            
+            echo "Uploading some artifacts to Defectdojo..."
+            sh '''
+            export DEFECTDOJO_API_TOKEN="$DEFECTDOJO_API_TOKEN"
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install requests
+            python defectdojo-upload.py
+            deactivate
+            '''
+            
             echo "Pipeline finished (success/failure). Cleaning up workspace..."
             cleanWs()
         }
