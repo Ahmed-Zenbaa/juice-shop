@@ -299,7 +299,7 @@ pipeline {
             source venv/bin/activate
             pip install --upgrade pip
             pip install requests
-            python defectdojo-upload.py
+            python3 defectdojo-upload.py
             deactivate
             '''
             
