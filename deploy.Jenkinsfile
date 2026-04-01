@@ -4,37 +4,24 @@ pipeline {
     environment {
         SONARQUBE = 'sonarqube'
         DOCKER_IMAGE = credentials('devsecops-demo-image')
-        DOCKER_TAG = "v1.${BUILD_NUMBER}"
+        #DOCKER_TAG = "v1.${BUILD_NUMBER}"
+        DOCKER_TAG = "v1.13"
         NVD_API_KEY = credentials('nvd-api-key')
         TARGET_IP = credentials('app-dast-target-ip')
         DEFECTDOJO_API_TOKEN = credentials('defectdojo-api-token')
     }
 
     stages {             
-
-        stage('Infrastructure Deploy') {
-            steps {
-                script {
-                    sh 'echo "Running Terraform Apply Commands..."'
+     
+        stage ('Image Scan') {
+            parallel {
+                stage('Trivy Image') {
+                    steps {
+                        script{
+                            sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} --format json -o trivy-image-report.json || true'
+                        }    
+                    }
                 }
-            }
-        }
-        
-        stage('K8s Deploy') {
-            steps {
-                withKubeConfig(credentialsId: 'jenkins-kubeconfig') {
-                    sh 'kubectl set image deployments.apps/juice-shop juice-shop=${DOCKER_IMAGE}:${DOCKER_TAG}'
-                    sh 'kubectl rollout status deployments.apps/juice-shop'
-                }
-            }
-        }
-
-        stage('DAST - OWASP ZAP') {
-            steps {
-                script{
-                    sh 'sleep 60'
-                    sh 'docker run --rm --add-host juice.shop.internal:$TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html -x zap-report.xml || true '
-                }    
             }
         }
         
