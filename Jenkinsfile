@@ -6,7 +6,8 @@ pipeline {
         DOCKER_IMAGE = credentials('devsecops-demo-image')
         DOCKER_TAG = "v1.${BUILD_NUMBER}"
         NVD_API_KEY = credentials('nvd-api-key')
-        TARGET_IP = credentials('app-dast-target-ip')
+        DAST_TARGET_IP = credentials('app-dast-target-ip')
+        DEFECTDOJO_TARGET_IP = credentials('defectdojo-target-ip')
         DEFECTDOJO_API_TOKEN = credentials('defectdojo-api-token')
     }
 
@@ -251,7 +252,7 @@ pipeline {
             steps {
                 script{
                     sh 'sleep 60'
-                    sh 'docker run --rm --add-host juice.shop.internal:$TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html -x zap-report.xml || true '
+                    sh 'docker run --rm --add-host juice.shop.internal:$DAST_TARGET_IP -v $(pwd):/zap/wrk:rw -t zaproxy/zap-stable:2.17.0 zap-full-scan.py -t http://juice.shop.internal -a -r zap-report.html -x zap-report.xml || true '
                 }    
             }
         }
@@ -296,7 +297,7 @@ pipeline {
             sh '''
             export DEFECTDOJO_API_TOKEN="$DEFECTDOJO_API_TOKEN"
             python3 -m venv venv
-            source venv/bin/activate
+            . venv/bin/activate
             pip install --upgrade pip
             pip install requests
             python3 defectdojo-upload.py
