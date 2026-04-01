@@ -4,7 +4,7 @@ pipeline {
     environment {
         SONARQUBE = 'sonarqube'
         DOCKER_IMAGE = credentials('devsecops-demo-image')
-        #DOCKER_TAG = "v1.${BUILD_NUMBER}"
+//        DOCKER_TAG = "v1.${BUILD_NUMBER}"
         DOCKER_TAG = "v1.13"
         NVD_API_KEY = credentials('nvd-api-key')
         TARGET_IP = credentials('app-dast-target-ip')
