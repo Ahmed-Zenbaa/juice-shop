@@ -124,7 +124,7 @@ pipeline {
                         stage('OWASP Dependency Check') {
                             steps {
                                 sh '''
-                                    docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --format "XML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
+                                    docker run -u 0 --rm -e NVD_API_KEY=$NVD_API_KEY -v $(pwd):/wrk -v /var/jenkins_home/dependency-check-data:/usr/share/dependency-check/data -w /wrk owasp/dependency-check:12.2.0 --project "devsecops-demo" --scan . --disableArchive --nvdApiKey $NVD_API_KEY --format "HTML" --format "XML" --out /wrk/dependency-check-report --failOnCVSS 7 || true
                                     cp dependency-check-report/dependency-check-report.html dependency-check-report.html || true
                                     cp dependency-check-report/dependency-check-report.xml dependency-check-report.xml || true
                                 '''
