@@ -183,6 +183,7 @@ pipeline {
                 stage('Trivy Image') {
                     steps {
                         script{
+                            sh 'docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}'
                             sh 'docker run --rm -v $(pwd):/wrk -w /wrk aquasec/trivy:0.69.3 image ${DOCKER_IMAGE}:${DOCKER_TAG} --format json -o trivy-image-report.json || true'
                         }    
                     }
