@@ -3,7 +3,8 @@ import sys
 import os
 
 # ====== CONFIG ======
-DEFECTDOJO_URL = "http://127.0.0.1:8081/api/v2/import-scan/"
+DEFECTDOJO_HOST = os.environ.get('DEFECTDOJO_TARGET_IP')
+DEFECTDOJO_URL = f"http://{DEFECTDOJO_HOST}:8081/api/v2/import-scan/"
 ENGAGEMENT_ID = 1
 API_TOKEN = os.environ.get('DEFECTDOJO_API_TOKEN')
 
