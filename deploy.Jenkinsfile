@@ -78,10 +78,9 @@ pipeline {
             
             echo "Uploading some artifacts to Defectdojo..."
             sh '''
-            #!/bin/bash
             export DEFECTDOJO_API_TOKEN="$DEFECTDOJO_API_TOKEN"
             python3 -m venv venv
-            source venv/bin/activate
+            . venv/bin/activate
             pip install --upgrade pip
             pip install requests
             python3 defectdojo-upload.py
